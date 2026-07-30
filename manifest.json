@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "AI Corrector",
+  "version": "1.0",
+  "description": "My first Chrome extension",
+
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}
