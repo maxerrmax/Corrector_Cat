@@ -1,15 +1,40 @@
-console.log("AI Corrector extension loaded!");
+const dictionary = {
+    "Aixo": "Això",
+    "provaa": "prova",
+    "cotxee": "cotxe",
+    "adioos": "adéu"
+};
+
+function checkText(text) {
+
+    const words = text.split(/\s+/);
+
+    words.forEach(word => {
+
+        const cleanWord = word.replace(/[.,!?;:()]/g, "");
+
+        if (dictionary[cleanWord]) {
+            console.log(
+                `❌ ${cleanWord} → ✅ ${dictionary[cleanWord]}`
+            );
+        }
+
+    });
+
+}
 
 document.addEventListener("input", (event) => {
-    const element = event.target;
 
-    // textarea
-    if (element.tagName === "TEXTAREA") {
-        console.log("TEXTAREA:", element.value);
+    if (event.target.tagName === "TEXTAREA") {
+
+        checkText(event.target.value);
+
     }
 
-    // contenteditable
-    if (element.isContentEditable) {
-        console.log("CONTENTEDITABLE:", element.innerText);
+    if (event.target.isContentEditable) {
+
+        checkText(event.target.innerText);
+
     }
+
 });
