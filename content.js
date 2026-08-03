@@ -1,40 +1,53 @@
-const dictionary = {
-    "Aixo": "Això",
-    "provaa": "prova",
-    "cotxee": "cotxe",
-    "adioos": "adéu"
-};
+const textareas = document.querySelectorAll("textarea");
+const editables = document.querySelectorAll("[contenteditable='true']");
 
-function checkText(text) {
+const elements = [...textareas, ...editables];
 
-    const words = text.split(/\s+/);
+elements.forEach(element => {
 
-    words.forEach(word => {
+    element.addEventListener("input", () => {
 
-        const cleanWord = word.replace(/[.,!?;:()]/g, "");
+        const text = getText(element);
 
-        if (dictionary[cleanWord]) {
-            console.log(
-                `❌ ${cleanWord} → ✅ ${dictionary[cleanWord]}`
-            );
+        const errors = findErrors(text);
+
+        console.log(errors);
+
+    });
+
+});
+
+function getText(element) {
+
+    if (element.tagName.toLowerCase() === "textarea") {
+        return element.value;
+    }
+
+    return element.innerText;
+}
+
+function findErrors(text) {
+
+    const errors = [];
+
+    Object.entries(dictionary).forEach(([wrong, correct]) => {
+
+        const regex = new RegExp(`\\b${wrong}\\b`, "g");
+
+        let match;
+
+        while ((match = regex.exec(text)) !== null) {
+
+            errors.push({
+                wrong,
+                correct,
+                start: match.index,
+                end: match.index + wrong.length
+            });
+
         }
 
     });
 
+    return errors.sort((a, b) => a.start - b.start);
 }
-
-document.addEventListener("input", (event) => {
-
-    if (event.target.tagName === "TEXTAREA") {
-
-        checkText(event.target.value);
-
-    }
-
-    if (event.target.isContentEditable) {
-
-        checkText(event.target.innerText);
-
-    }
-
-});
