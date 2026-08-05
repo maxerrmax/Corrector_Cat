@@ -9,6 +9,7 @@
             "js": [
                 "dictionary.js",
                 "overlay.js",
+                "mirror.js",
                 "content.js"
             ],
             "css": [

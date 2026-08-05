@@ -1,11 +1,17 @@
-function createOverlay(element){
+function syncOverlay(textarea, overlay) {
 
-    console.log("Create overlay");
+    const style = getComputedStyle(textarea);
 
-}
+    // Copiar els estils necessaris
+    overlay.style.font = style.font;
+    overlay.style.padding = style.padding;
+    overlay.style.lineHeight = style.lineHeight;
+    overlay.style.letterSpacing = style.letterSpacing;
+    overlay.style.textAlign = style.textAlign;
 
-function updateOverlay(element){
+    overlay.style.whiteSpace = "pre-wrap";
+    overlay.style.overflowWrap = "break-word";
 
-    console.log("Update overlay");
-
+    // Copiar el text
+    overlay.textContent = textarea.value;
 }

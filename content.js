@@ -1,29 +1,52 @@
-const textareas = document.querySelectorAll("textarea");
-const editables = document.querySelectorAll("[contenteditable='true']");
+document.querySelectorAll("textarea").forEach(initTextarea);
 
-const elements = [...textareas, ...editables];
+function initTextarea(textarea) {
 
-elements.forEach(element => {
+    if (textarea.dataset.correctorInitialized) return;
+    textarea.dataset.correctorInitialized = "true";
 
-    element.addEventListener("input", () => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "corrector-wrapper";
 
-        const text = getText(element);
+    textarea.parentNode.insertBefore(wrapper, textarea);
+    wrapper.appendChild(textarea);
 
-        const errors = findErrors(text);
+    const overlay = document.createElement("div");
+    overlay.className = "corrector-overlay";
+
+    wrapper.insertBefore(overlay, textarea);
+
+    syncOverlay(textarea, overlay);
+
+    textarea.addEventListener("input", () => {
+
+        const errors = findErrors(textarea.value);
 
         console.log(errors);
 
+        if (errors.length > 0) {
+
+            errors.forEach(error => {
+
+                const coords = getCaretCoordinates(textarea, error.start);
+
+                console.log(error.wrong, coords);
+
+            });
+
+        }
+
+        syncOverlay(textarea, overlay);
+
     });
 
-});
+    textarea.addEventListener("scroll", () => {
 
-function getText(element) {
+        overlay.scrollTop = textarea.scrollTop;
+        overlay.scrollLeft = textarea.scrollLeft;
 
-    if (element.tagName.toLowerCase() === "textarea") {
-        return element.value;
-    }
+    });
 
-    return element.innerText;
 }
 
 function findErrors(text) {
@@ -50,4 +73,5 @@ function findErrors(text) {
     });
 
     return errors.sort((a, b) => a.start - b.start);
+
 }

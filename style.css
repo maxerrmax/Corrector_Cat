@@ -1,4 +1,27 @@
-.error-word {
-    text-decoration: underline wavy red;
-    text-decoration-thickness: 2px;
+.corrector-wrapper{
+    position:relative;
+    display:inline-block;
+    width:100%;
+}
+
+.corrector-overlay{
+
+    position:absolute;
+    inset:0;
+
+    pointer-events:none;
+
+    color:transparent;
+
+    white-space:pre-wrap;
+    overflow-wrap:break-word;
+    overflow:hidden;
+}
+
+.corrector-wrapper textarea{
+
+    position:relative;
+
+    background:transparent;
+
 }
