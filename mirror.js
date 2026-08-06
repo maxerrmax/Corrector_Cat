@@ -7,6 +7,10 @@ function createMirror() {
     mirror = document.createElement("div");
 
     mirror.style.position = "absolute";
+    // Fixem una posició coneguda i fora de pantalla, en lloc de deixar-lo
+    // caure a la posició estàtica (que pot acabar a qualsevol lloc del document)
+    mirror.style.top = "0";
+    mirror.style.left = "0";
     mirror.style.visibility = "hidden";
     mirror.style.whiteSpace = "pre-wrap";
     mirror.style.wordWrap = "break-word";
@@ -45,13 +49,18 @@ function getCaretCoordinates(textarea, position) {
 
     mirror.appendChild(marker);
 
-    const rect = marker.getBoundingClientRect();
+    // Coordenades del marker RELATIVES al propi mirall, no al viewport.
+    // Com que el mirall té el mateix padding/border/font que el textarea,
+    // el seu cantó superior esquerre coincideix amb el del textarea (i,
+    // per tant, amb el de l'overlay, que hi està alineat amb inset:0).
+    const markerRect = marker.getBoundingClientRect();
+    const mirrorRect = mirror.getBoundingClientRect();
 
     marker.remove();
 
     return {
-        x: rect.left,
-        y: rect.top
+        x: markerRect.left - mirrorRect.left,
+        y: markerRect.top - mirrorRect.top
     };
 
 }

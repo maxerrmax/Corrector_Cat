@@ -20,23 +20,34 @@ function initTextarea(textarea) {
 
     textarea.addEventListener("input", () => {
 
+        // Primer sincronitzem el text (mida, estils, contingut)
+        syncOverlay(textarea, overlay);
+
         const errors = findErrors(textarea.value);
 
         console.log(errors);
+
+        // Esborrem només les línies antigues, no el text
+        overlay.querySelectorAll(".corrector-underline").forEach(line => line.remove());
 
         if (errors.length > 0) {
 
             errors.forEach(error => {
 
-                const coords = getCaretCoordinates(textarea, error.start);
+                const start = getCaretCoordinates(textarea, error.start);
 
-                console.log(error.wrong, coords);
+                const end = getCaretCoordinates(textarea, error.end);
+
+                drawUnderline(
+                    overlay,
+                    start.x,
+                    start.y,
+                    end.x - start.x
+                );
 
             });
 
         }
-
-        syncOverlay(textarea, overlay);
 
     });
 
