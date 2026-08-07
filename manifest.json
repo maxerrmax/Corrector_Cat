@@ -10,7 +10,8 @@
                 "dictionary.js",
                 "overlay.js",
                 "mirror.js",
-                "content.js"
+                "content.js",
+                "editable.js"
             ],
             "css": [
                 "style.css"
