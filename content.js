@@ -20,34 +20,27 @@ function initTextarea(textarea) {
 
     textarea.addEventListener("input", () => {
 
-        // Primer sincronitzem el text (mida, estils, contingut)
         syncOverlay(textarea, overlay);
 
         const errors = findErrors(textarea.value);
 
-        console.log(errors);
-
-        // Esborrem només les línies antigues, no el text
         overlay.querySelectorAll(".corrector-underline").forEach(line => line.remove());
 
-        if (errors.length > 0) {
+        errors.forEach(error => {
 
-            errors.forEach(error => {
+            const start = getCaretCoordinates(textarea, error.start);
+            const end = getCaretCoordinates(textarea, error.end);
 
-                const start = getCaretCoordinates(textarea, error.start);
+            drawUnderline(
+                overlay,
+                textarea,
+                error,
+                start.x,
+                start.y,
+                end.x - start.x
+            );
 
-                const end = getCaretCoordinates(textarea, error.end);
-
-                drawUnderline(
-                    overlay,
-                    start.x,
-                    start.y,
-                    end.x - start.x
-                );
-
-            });
-
-        }
+        });
 
     });
 
@@ -57,6 +50,25 @@ function initTextarea(textarea) {
         overlay.scrollLeft = textarea.scrollLeft;
 
     });
+
+}
+
+// Aplica la correcció d'un error dins d'un textarea i redispara
+// l'anàlisi perquè es redibuixin els subratllats restants.
+function applyFixTextarea(textarea, error) {
+
+    const value = textarea.value;
+
+    const newValue = value.slice(0, error.start) + error.correct + value.slice(error.end);
+
+    textarea.value = newValue;
+
+    const newCaretPos = error.start + error.correct.length;
+
+    textarea.focus();
+    textarea.setSelectionRange(newCaretPos, newCaretPos);
+
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
 
 }
 

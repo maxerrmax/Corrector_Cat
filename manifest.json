@@ -8,6 +8,7 @@
             "matches": ["<all_urls>"],
             "js": [
                 "dictionary.js",
+                "suggestions.js",
                 "overlay.js",
                 "mirror.js",
                 "content.js",

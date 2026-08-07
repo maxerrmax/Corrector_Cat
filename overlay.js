@@ -2,7 +2,6 @@ function syncOverlay(textarea, overlay) {
 
     const style = getComputedStyle(textarea);
 
-    // Copiar els estils necessaris
     overlay.style.font = style.font;
     overlay.style.padding = style.padding;
     overlay.style.lineHeight = style.lineHeight;
@@ -12,7 +11,6 @@ function syncOverlay(textarea, overlay) {
     overlay.style.whiteSpace = "pre-wrap";
     overlay.style.overflowWrap = "break-word";
 
-    // Busca (o crea) el span de text, sense tocar les underlines existents
     let textLayer = overlay.querySelector(".corrector-text");
     if (!textLayer) {
         textLayer = document.createElement("span");
@@ -22,23 +20,25 @@ function syncOverlay(textarea, overlay) {
     textLayer.textContent = textarea.value;
 }
 
-function drawUnderline(overlay, x, y, width) {
+// error: { wrong, correct, start, end }
+function drawUnderline(overlay, textarea, error, x, y, width) {
 
     const style = getComputedStyle(overlay);
-
-    // line-height en píxels (amb fallback si vingués com "normal")
     const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2;
 
     const underline = document.createElement("div");
-
     underline.className = "corrector-underline";
 
     underline.style.left = `${x}px`;
-    // y és el punt SUPERIOR de la línia de text; sumem el line-height
-    // (menys uns px) perquè la ratlla quedi enganxada sota el text,
-    // no a l'inici de la línia.
-    underline.style.top = `${y + lineHeight - 2}px`;
+    // La caixa ara és més alta (per poder-la clicar bé), però mantenim
+    // el mateix punt visual on queia la línia abans (vora inferior).
+    underline.style.top = `${y + lineHeight - 8}px`;
     underline.style.width = `${width}px`;
+
+    underline.addEventListener("click", () => {
+        const rect = underline.getBoundingClientRect();
+        showSuggestionPopup(rect, error, () => applyFixTextarea(textarea, error));
+    });
 
     overlay.appendChild(underline);
 

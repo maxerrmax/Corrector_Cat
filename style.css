@@ -8,7 +8,7 @@
 
     position:absolute;
     inset:0;
-    z-index: 2; 
+    z-index: 2;
 
     pointer-events:none;
 
@@ -31,12 +31,55 @@
 
     position: absolute;
 
-    height: 2px;
+    /* Caixa més alta que la línia vermella real, perquè sigui més
+       fàcil de clicar. La línia visual és el border-bottom. */
+    height: 8px;
+    box-sizing: border-box;
+    border-bottom: 2px solid red;
+    border-radius: 1px;
 
-    background: red;
+    background: transparent;
+    cursor: pointer;
 
-    border-radius: 2px;
+    /* Els pares (.corrector-overlay o la capa de contenteditable) tenen
+       pointer-events:none perquè no bloquegin l'edició de text, però
+       aquest element concret recupera els events per poder-lo clicar. */
+    pointer-events: auto;
 
-    pointer-events: none;
+}
 
+.corrector-popup {
+
+    position: fixed;
+    z-index: 2147483647;
+
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+    padding: 4px;
+    min-width: 120px;
+
+}
+
+.corrector-suggestion {
+
+    display: block;
+    width: 100%;
+    text-align: left;
+
+    background: none;
+    border: none;
+    padding: 6px 10px;
+
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 4px;
+
+}
+
+.corrector-suggestion:hover {
+    background: #f0f0f0;
 }

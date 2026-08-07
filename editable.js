@@ -21,8 +21,6 @@ function getOverlayLayer() {
 
 }
 
-// Recorre els nodes de text de l'element i retorna, per cadascun,
-// l'offset de caràcter global on comença i acaba dins del "text pla".
 function getTextNodesInfo(el) {
 
     const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
@@ -45,15 +43,12 @@ function getTextNodesInfo(el) {
 
 }
 
-// Text pla construït EXACTAMENT amb el mateix criteri que getTextNodesInfo,
-// perquè els índexs de findErrors coincideixin amb els nodes reals del DOM.
 function getFlatText(el) {
 
     return getTextNodesInfo(el).map(info => info.node.textContent).join("");
 
 }
 
-// Converteix un rang [start, end) de caràcters en un Range real del DOM.
 function createRangeForOffsets(el, start, end) {
 
     const nodesInfo = getTextNodesInfo(el);
@@ -93,7 +88,8 @@ function clearUnderlinesFor(ownerId) {
 
 }
 
-function drawUnderlineFixed(rect, ownerId) {
+// error: { wrong, correct, start, end }
+function drawUnderlineFixed(rect, ownerId, error, el) {
 
     const layer = getOverlayLayer();
 
@@ -101,14 +97,38 @@ function drawUnderlineFixed(rect, ownerId) {
     underline.className = "corrector-underline";
     underline.dataset.owner = ownerId;
 
-    // position:fixed perquè getClientRects() ja retorna coordenades
-    // relatives al viewport - no cal cap conversió com amb el mirall.
     underline.style.position = "fixed";
     underline.style.left = `${rect.left}px`;
-    underline.style.top = `${rect.bottom - 2}px`;
+    // Mateix ajust que a overlay.js: caixa més alta per poder clicar-la
+    // bé, mantenint la vora inferior al mateix lloc visual d'abans.
+    underline.style.top = `${rect.bottom - 8}px`;
     underline.style.width = `${rect.width}px`;
 
+    underline.addEventListener("click", () => {
+        const clickRect = underline.getBoundingClientRect();
+        showSuggestionPopup(clickRect, error, () => applyFixEditable(el, error));
+    });
+
     layer.appendChild(underline);
+
+}
+
+// Aplica la correcció substituint el text dins el Range corresponent,
+// i redispara "input" perquè es recalculin els errors restants.
+function applyFixEditable(el, error) {
+
+    const range = createRangeForOffsets(el, error.start, error.end);
+
+    if (!range) return;
+
+    range.deleteContents();
+    range.insertNode(document.createTextNode(error.correct));
+
+    // Fusiona nodes de text adjacents perquè els offsets futurs
+    // (getTextNodesInfo) es mantinguin consistents.
+    el.normalize();
+
+    el.dispatchEvent(new Event("input", { bubbles: true }));
 
 }
 
@@ -125,10 +145,8 @@ function highlightErrors(el, ownerId) {
 
         if (!range) return;
 
-        // Un error pot ocupar més d'una línia visual -> pot generar
-        // més d'un rectangle. Els dibuixem tots.
         Array.from(range.getClientRects()).forEach(rect => {
-            drawUnderlineFixed(rect, ownerId);
+            drawUnderlineFixed(rect, ownerId, error, el);
         });
 
     });
@@ -156,8 +174,6 @@ function initEditable(el) {
 
     el.addEventListener("input", scheduleHighlight);
 
-    // Com que fem servir position:fixed, cal redibuixar quan l'element
-    // es mou dins la pàgina (scroll de la finestra o d'un contenidor pare).
     window.addEventListener("scroll", scheduleHighlight, true);
     window.addEventListener("resize", scheduleHighlight);
 
@@ -172,11 +188,8 @@ function scanForEditables(root = document) {
 
 }
 
-// Detecció inicial
 scanForEditables();
 
-// Molts editors web (Gmail, formularis dinàmics...) insereixen el
-// contenteditable més tard, un cop carregada la pàgina.
 const editableObserver = new MutationObserver(mutations => {
 
     mutations.forEach(mutation => {
