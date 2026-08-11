@@ -1,6 +1,13 @@
 let editableCounter = 0;
 let overlayLayer = null;
 
+// Estat de LanguageTool per cada element contenteditable.
+// NOTA: LANGUAGETOOL_DEBOUNCE_MS ja està declarat a content.js -- com que
+// tots els content scripts comparteixen el mateix àmbit global, no cal
+// (ni es pot) tornar-lo a declarar aquí. content.js s'ha de carregar
+// abans que editable.js al manifest.json perquè això funcioni.
+const languageToolStateEditable = new WeakMap();
+
 function getOverlayLayer() {
 
     if (overlayLayer) return overlayLayer;
@@ -99,8 +106,6 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 
     underline.style.position = "fixed";
     underline.style.left = `${rect.left}px`;
-    // Mateix ajust que a overlay.js: caixa més alta per poder clicar-la
-    // bé, mantenint la vora inferior al mateix lloc visual d'abans.
     underline.style.top = `${rect.bottom - 8}px`;
     underline.style.width = `${rect.width}px`;
 
@@ -114,7 +119,7 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 }
 
 // Aplica la correcció substituint el text dins el Range corresponent,
-// i redispara "input" perquè es recalculin els errors restants.
+// i redispara "input" perquè es recalculin diccionari + LanguageTool.
 function applyFixEditable(el, error) {
 
     const range = createRangeForOffsets(el, error.start, error.end);
@@ -124,22 +129,25 @@ function applyFixEditable(el, error) {
     range.deleteContents();
     range.insertNode(document.createTextNode(error.correct));
 
-    // Fusiona nodes de text adjacents perquè els offsets futurs
-    // (getTextNodesInfo) es mantinguin consistents.
     el.normalize();
 
     el.dispatchEvent(new Event("input", { bubbles: true }));
 
 }
 
-function highlightErrors(el, ownerId) {
+// Repinta tots els subratllats: la unió dels errors del diccionari
+// (calculats a l'instant) i els últims errors coneguts de LanguageTool.
+function redraw(el, ownerId) {
 
     const text = getFlatText(el);
-    const errors = findErrors(text);
+    const dictErrors = findErrors(text);
+
+    const state = languageToolStateEditable.get(el);
+    const ltErrors = state ? state.lastResults : [];
 
     clearUnderlinesFor(ownerId);
 
-    errors.forEach(error => {
+    [...dictErrors, ...ltErrors].forEach(error => {
 
         const range = createRangeForOffsets(el, error.start, error.end);
 
@@ -153,6 +161,32 @@ function highlightErrors(el, ownerId) {
 
 }
 
+function scheduleLanguageToolCheck(el, ownerId) {
+
+    const state = languageToolStateEditable.get(el);
+
+    clearTimeout(state.timer);
+
+    state.timer = setTimeout(async () => {
+
+        const myRequestId = ++state.requestId;
+        const textAtRequestTime = getFlatText(el);
+
+        const ltErrors = await checkWithLanguageTool(textAtRequestTime);
+
+        // Descartem la resposta si l'usuari ha seguit escrivint mentre
+        // esperàvem, o si el text ha canviat per altres motius.
+        if (myRequestId !== state.requestId) return;
+        if (getFlatText(el) !== textAtRequestTime) return;
+
+        state.lastResults = ltErrors;
+
+        redraw(el, ownerId);
+
+    }, LANGUAGETOOL_DEBOUNCE_MS);
+
+}
+
 function initEditable(el) {
 
     if (el.dataset.correctorInitialized) return;
@@ -161,23 +195,30 @@ function initEditable(el) {
     const ownerId = `ce-${editableCounter++}`;
     el.dataset.correctorId = ownerId;
 
+    languageToolStateEditable.set(el, { lastResults: [], timer: null, requestId: 0 });
+
     let scheduled = false;
 
-    const scheduleHighlight = () => {
+    const scheduleRedraw = () => {
         if (scheduled) return;
         scheduled = true;
         requestAnimationFrame(() => {
             scheduled = false;
-            highlightErrors(el, ownerId);
+            redraw(el, ownerId);
         });
     };
 
-    el.addEventListener("input", scheduleHighlight);
+    el.addEventListener("input", () => {
+        scheduleRedraw();
+        scheduleLanguageToolCheck(el, ownerId);
+    });
 
-    window.addEventListener("scroll", scheduleHighlight, true);
-    window.addEventListener("resize", scheduleHighlight);
+    // Com que fem servir position:fixed, cal redibuixar quan l'element
+    // es mou dins la pàgina (scroll de la finestra o d'un contenidor pare).
+    window.addEventListener("scroll", scheduleRedraw, true);
+    window.addEventListener("resize", scheduleRedraw);
 
-    highlightErrors(el, ownerId);
+    redraw(el, ownerId);
 
 }
 
@@ -187,8 +228,6 @@ function scanForEditables(root = document) {
         .forEach(initEditable);
 
 }
-
-scanForEditables();
 
 const editableObserver = new MutationObserver(mutations => {
 
@@ -205,3 +244,6 @@ const editableObserver = new MutationObserver(mutations => {
 });
 
 editableObserver.observe(document.body, { childList: true, subtree: true });
+
+// Inicialització: al final del fitxer, un cop tot ja està declarat.
+scanForEditables();
