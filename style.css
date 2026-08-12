@@ -61,6 +61,20 @@
 
     padding: 4px;
     min-width: 140px;
+    max-width: 280px;
+    max-height: 240px;
+    overflow-y: auto;
+
+}
+
+.corrector-message {
+
+    padding: 8px 10px 4px 10px;
+    font-size: 12px;
+    color: #666;
+    line-height: 1.4;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 4px;
 
 }
 

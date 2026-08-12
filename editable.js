@@ -111,7 +111,7 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 
     underline.addEventListener("click", () => {
         const clickRect = underline.getBoundingClientRect();
-        showSuggestionPopup(clickRect, error, () => applyFixEditable(el, error));
+        showSuggestionPopup(clickRect, error, (chosenText) => applyFixEditable(el, error, chosenText));
     });
 
     layer.appendChild(underline);
@@ -120,14 +120,17 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 
 // Aplica la correcció substituint el text dins el Range corresponent,
 // i redispara "input" perquè es recalculin diccionari + LanguageTool.
-function applyFixEditable(el, error) {
+// chosenText: quin dels suggeriments s'ha clicat.
+function applyFixEditable(el, error, chosenText) {
+
+    const replacement = chosenText !== undefined ? chosenText : error.correct;
 
     const range = createRangeForOffsets(el, error.start, error.end);
 
     if (!range) return;
 
     range.deleteContents();
-    range.insertNode(document.createTextNode(error.correct));
+    range.insertNode(document.createTextNode(replacement));
 
     el.normalize();
 
@@ -137,7 +140,7 @@ function applyFixEditable(el, error) {
 
 // Repinta tots els subratllats: la unió dels errors del diccionari
 // (calculats a l'instant) i els últims errors coneguts de LanguageTool.
-function redraw(el, ownerId) {
+function redrawEditable(el, ownerId) {
 
     const text = getFlatText(el);
     const dictErrors = findErrors(text);
@@ -161,7 +164,7 @@ function redraw(el, ownerId) {
 
 }
 
-function scheduleLanguageToolCheck(el, ownerId) {
+function scheduleLanguageToolCheckEditable(el, ownerId) {
 
     const state = languageToolStateEditable.get(el);
 
@@ -181,7 +184,7 @@ function scheduleLanguageToolCheck(el, ownerId) {
 
         state.lastResults = ltErrors;
 
-        redraw(el, ownerId);
+        redrawEditable(el, ownerId);
 
     }, LANGUAGETOOL_DEBOUNCE_MS);
 
@@ -204,13 +207,13 @@ function initEditable(el) {
         scheduled = true;
         requestAnimationFrame(() => {
             scheduled = false;
-            redraw(el, ownerId);
+            redrawEditable(el, ownerId);
         });
     };
 
     el.addEventListener("input", () => {
         scheduleRedraw();
-        scheduleLanguageToolCheck(el, ownerId);
+        scheduleLanguageToolCheckEditable(el, ownerId);
     });
 
     // Com que fem servir position:fixed, cal redibuixar quan l'element
@@ -218,7 +221,7 @@ function initEditable(el) {
     window.addEventListener("scroll", scheduleRedraw, true);
     window.addEventListener("resize", scheduleRedraw);
 
-    redraw(el, ownerId);
+    redrawEditable(el, ownerId);
 
 }
 

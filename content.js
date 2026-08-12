@@ -103,15 +103,19 @@ function scheduleLanguageToolCheck(textarea, overlay) {
 
 // Aplica la correcció d'un error dins d'un textarea i redispara
 // l'anàlisi perquè es redibuixin els subratllats restants.
-function applyFixTextarea(textarea, error) {
+// chosenText: quin dels suggeriments s'ha clicat (pot no ser error.correct
+// si l'usuari n'ha triat un altre de la llista).
+function applyFixTextarea(textarea, error, chosenText) {
+
+    const replacement = chosenText !== undefined ? chosenText : error.correct;
 
     const value = textarea.value;
 
-    const newValue = value.slice(0, error.start) + error.correct + value.slice(error.end);
+    const newValue = value.slice(0, error.start) + replacement + value.slice(error.end);
 
     textarea.value = newValue;
 
-    const newCaretPos = error.start + error.correct.length;
+    const newCaretPos = error.start + replacement.length;
 
     textarea.focus();
     textarea.setSelectionRange(newCaretPos, newCaretPos);
