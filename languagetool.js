@@ -1,36 +1,101 @@
 const LANGUAGETOOL_ENDPOINT = "https://api.languagetool.org/v2/check";
 const LANGUAGETOOL_LANGUAGE = "ca-ES";
+const LANGUAGETOOL_TIMEOUT_MS = 8000;
+
+// Marge de seguretat per sota del límit real de l'API pública (20/min).
+// NOTA: aquest comptador és per pestanya/instància del content script,
+// no es comparteix entre pestanyes obertes -- és una protecció local,
+// no una garantia absoluta de respectar el límit global de l'API.
+const LANGUAGETOOL_MAX_REQUESTS_PER_MINUTE = 15;
+const LANGUAGETOOL_RATE_WINDOW_MS = 60 * 1000;
+const languageToolRequestTimestamps = [];
+
+const LANGUAGETOOL_CACHE_MAX_ENTRIES = 50;
+const languageToolCache = new Map();
+
+function canMakeLanguageToolRequest() {
+
+    const now = Date.now();
+
+    while (
+        languageToolRequestTimestamps.length > 0 &&
+        now - languageToolRequestTimestamps[0] > LANGUAGETOOL_RATE_WINDOW_MS
+    ) {
+        languageToolRequestTimestamps.shift();
+    }
+
+    return languageToolRequestTimestamps.length < LANGUAGETOOL_MAX_REQUESTS_PER_MINUTE;
+
+}
+
+function recordLanguageToolRequest() {
+    languageToolRequestTimestamps.push(Date.now());
+}
+
+function getCachedLanguageToolResult(text) {
+    return languageToolCache.has(text) ? languageToolCache.get(text) : undefined;
+}
+
+function setCachedLanguageToolResult(text, result) {
+
+    if (languageToolCache.size >= LANGUAGETOOL_CACHE_MAX_ENTRIES) {
+        // Eliminem l'entrada més antiga (Map manté l'ordre d'inserció).
+        const oldestKey = languageToolCache.keys().next().value;
+        languageToolCache.delete(oldestKey);
+    }
+
+    languageToolCache.set(text, result);
+
+}
 
 // Crida l'API de LanguageTool i retorna els errors ja mapejats al mateix
 // format que fa servir findErrors() del diccionari:
 // { start, end, wrong, correct, suggestions, message, source }
-//
-// De moment és una funció "solta" -- encara no està connectada a cap
-// event ni fa debounce (això arriba al Dia 3). Aquí només volem
-// confirmar que la crida i el mapeig funcionen correctament.
 async function checkWithLanguageTool(text) {
 
     if (!text || !text.trim()) return [];
+
+    const cached = getCachedLanguageToolResult(text);
+    if (cached !== undefined) return cached;
+
+    if (!canMakeLanguageToolRequest()) {
+        console.warn("LanguageTool: límit de peticions per minut assolit, s'omet aquesta comprovació.");
+        return [];
+    }
 
     const body = new URLSearchParams();
     body.set("text", text);
     body.set("language", LANGUAGETOOL_LANGUAGE);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), LANGUAGETOOL_TIMEOUT_MS);
+
     let response;
 
     try {
 
+        recordLanguageToolRequest();
+
         response = await fetch(LANGUAGETOOL_ENDPOINT, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: body.toString()
+            body: body.toString(),
+            signal: controller.signal
         });
 
     } catch (err) {
 
-        // Error de xarxa (sense connexió, domini bloquejat, etc.)
-        console.warn("LanguageTool: error de xarxa", err);
+        if (err.name === "AbortError") {
+            console.warn("LanguageTool: la petició ha trigat massa i s'ha cancel·lat.");
+        } else {
+            console.warn("LanguageTool: error de xarxa", err);
+        }
+
         return [];
+
+    } finally {
+
+        clearTimeout(timeoutId);
 
     }
 
@@ -50,10 +115,10 @@ async function checkWithLanguageTool(text) {
 
     if (!data.matches) return [];
 
-    return data.matches
+    const errors = data.matches
 
-        // De moment descartem els avisos sense cap substitució concreta
-        // (el nostre popup necessita alguna cosa aplicable per clicar).
+        // Descartem els avisos sense cap substitució concreta (el nostre
+        // popup necessita alguna cosa aplicable per clicar).
         .filter(match => match.replacements && match.replacements.length > 0)
 
         .map(match => {
@@ -71,5 +136,9 @@ async function checkWithLanguageTool(text) {
             };
 
         });
+
+    setCachedLanguageToolResult(text, errors);
+
+    return errors;
 
 }
