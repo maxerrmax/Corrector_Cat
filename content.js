@@ -26,7 +26,8 @@ function initTextarea(textarea) {
 
     textarea.addEventListener("input", () => {
 
-        // Redibuixat immediat amb el diccionari (0ms de latència).
+        // Redibuixat immediat amb els últims resultats coneguts de
+        // LanguageTool (pot no haver-n'hi cap encara la primera vegada).
         redraw(textarea, overlay);
 
         // Petició "debounced" a LanguageTool -- no es dispara fins que
@@ -44,20 +45,18 @@ function initTextarea(textarea) {
 
 }
 
-// Repinta tots els subratllats: la unió dels errors del diccionari
-// (calculats a l'instant) i els últims errors coneguts de LanguageTool
-// (poden ser d'una crida anterior, mentre n'arriba una de nova).
+// Repinta tots els subratllats amb els últims errors coneguts de
+// LanguageTool (pot ser un array buit fins que arriba la primera resposta).
 function redraw(textarea, overlay) {
 
     syncOverlay(textarea, overlay);
 
-    const dictErrors = findErrors(textarea.value);
     const state = languageToolState.get(textarea);
     const ltErrors = state ? state.lastResults : [];
 
     overlay.querySelectorAll(".corrector-underline").forEach(line => line.remove());
 
-    [...dictErrors, ...ltErrors].forEach(error => {
+    ltErrors.forEach(error => {
 
         const start = getCaretCoordinates(textarea, error.start);
         const end = getCaretCoordinates(textarea, error.end);
@@ -121,33 +120,6 @@ function applyFixTextarea(textarea, error, chosenText) {
     textarea.setSelectionRange(newCaretPos, newCaretPos);
 
     textarea.dispatchEvent(new Event("input", { bubbles: true }));
-
-}
-
-function findErrors(text) {
-
-    const errors = [];
-
-    Object.entries(dictionary).forEach(([wrong, correct]) => {
-
-        const regex = new RegExp(`\\b${wrong}\\b`, "g");
-
-        let match;
-
-        while ((match = regex.exec(text)) !== null) {
-
-            errors.push({
-                wrong,
-                correct,
-                start: match.index,
-                end: match.index + wrong.length
-            });
-
-        }
-
-    });
-
-    return errors.sort((a, b) => a.start - b.start);
 
 }
 

@@ -106,7 +106,7 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 
     underline.style.position = "fixed";
     underline.style.left = `${rect.left}px`;
-    underline.style.top = `${rect.bottom - 8}px`;
+    underline.style.top = `${rect.bottom - 10}px`;
     underline.style.width = `${rect.width}px`;
 
     underline.addEventListener("click", () => {
@@ -119,7 +119,7 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 }
 
 // Aplica la correcció substituint el text dins el Range corresponent,
-// i redispara "input" perquè es recalculin diccionari + LanguageTool.
+// i redispara "input" perquè LanguageTool torni a analitzar el text.
 // chosenText: quin dels suggeriments s'ha clicat.
 function applyFixEditable(el, error, chosenText) {
 
@@ -138,19 +138,16 @@ function applyFixEditable(el, error, chosenText) {
 
 }
 
-// Repinta tots els subratllats: la unió dels errors del diccionari
-// (calculats a l'instant) i els últims errors coneguts de LanguageTool.
+// Repinta tots els subratllats amb els últims errors coneguts de
+// LanguageTool (pot ser un array buit fins que arriba la primera resposta).
 function redrawEditable(el, ownerId) {
-
-    const text = getFlatText(el);
-    const dictErrors = findErrors(text);
 
     const state = languageToolStateEditable.get(el);
     const ltErrors = state ? state.lastResults : [];
 
     clearUnderlinesFor(ownerId);
 
-    [...dictErrors, ...ltErrors].forEach(error => {
+    ltErrors.forEach(error => {
 
         const range = createRangeForOffsets(el, error.start, error.end);
 

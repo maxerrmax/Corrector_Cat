@@ -48,8 +48,8 @@ function setCachedLanguageToolResult(text, result) {
 
 }
 
-// Crida l'API de LanguageTool i retorna els errors ja mapejats al mateix
-// format que fa servir findErrors() del diccionari:
+// Crida l'API de LanguageTool i retorna els errors ja mapejats al format
+// que fa servir la resta del projecte:
 // { start, end, wrong, correct, suggestions, message, source }
 async function checkWithLanguageTool(text) {
 
