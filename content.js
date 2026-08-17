@@ -52,7 +52,7 @@ function redraw(textarea, overlay) {
     syncOverlay(textarea, overlay);
 
     const state = languageToolState.get(textarea);
-    const ltErrors = state ? state.lastResults : [];
+    const ltErrors = state ? state.lastResults.filter(error => !isErrorIgnored(error)) : [];
 
     overlay.querySelectorAll(".corrector-underline").forEach(line => line.remove());
 

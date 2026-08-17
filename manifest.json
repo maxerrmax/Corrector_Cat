@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Corrector Català",
     "version": "1.0",
-    "description": "Detecta i suggereix correccions per a castellanismes i barbarismes habituals en català, mentre escrius.",
+    "description": "Fa ús de la API de languagetool per corregir errors en temps real (Català).",
 
     "icons": {
         "16": "icons/icon16.png",

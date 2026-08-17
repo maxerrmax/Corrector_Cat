@@ -10,7 +10,8 @@ function ignoreKeyFor(error) {
 }
 
 function isErrorIgnored(error) {
-    return ignoredErrorKeys.has(ignoreKeyFor(error));
+    const result = ignoredErrorKeys.has(ignoreKeyFor(error));
+    return result;
 }
 
 function ignoreError(error) {
