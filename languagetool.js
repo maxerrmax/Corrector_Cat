@@ -132,6 +132,7 @@ async function checkWithLanguageTool(text) {
                 correct: suggestions[0],
                 suggestions,
                 message: match.message,
+                ruleId: match.rule ? match.rule.id : null,
                 source: "languagetool"
             };
 

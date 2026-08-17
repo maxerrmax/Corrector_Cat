@@ -106,12 +106,20 @@ function drawUnderlineFixed(rect, ownerId, error, el) {
 
     underline.style.position = "fixed";
     underline.style.left = `${rect.left}px`;
-    underline.style.top = `${rect.bottom - 10}px`;
+    underline.style.top = `${rect.bottom - 8}px`;
     underline.style.width = `${rect.width}px`;
 
     underline.addEventListener("click", () => {
         const clickRect = underline.getBoundingClientRect();
-        showSuggestionPopup(clickRect, error, (chosenText) => applyFixEditable(el, error, chosenText));
+        showSuggestionPopup(
+            clickRect,
+            error,
+            (chosenText) => applyFixEditable(el, error, chosenText),
+            () => {
+                ignoreError(error);
+                redrawEditable(el, ownerId);
+            }
+        );
     });
 
     layer.appendChild(underline);
@@ -143,7 +151,7 @@ function applyFixEditable(el, error, chosenText) {
 function redrawEditable(el, ownerId) {
 
     const state = languageToolStateEditable.get(el);
-    const ltErrors = state ? state.lastResults : [];
+    const ltErrors = state ? state.lastResults.filter(error => !isErrorIgnored(error)) : [];
 
     clearUnderlinesFor(ownerId);
 

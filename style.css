@@ -41,11 +41,18 @@
     background: transparent;
     cursor: pointer;
 
+    transition: border-color 100ms ease;
+
     /* Els pares (.corrector-overlay o la capa de contenteditable) tenen
        pointer-events:none perquè no bloquegin l'edició de text, però
        aquest element concret recupera els events per poder-lo clicar. */
     pointer-events: auto;
 
+}
+
+.corrector-underline:hover {
+    border-bottom-color: #a01a10;
+    border-bottom-width: 3px;
 }
 
 .corrector-popup {
@@ -65,6 +72,18 @@
     max-height: 240px;
     overflow-y: auto;
 
+    /* Estat inicial per a la transició d'entrada -- veure suggestions.js,
+       que afegeix .corrector-popup-visible un frame després d'inserir-lo. */
+    opacity: 0;
+    transform: scale(0.96);
+    transform-origin: top left;
+    transition: opacity 120ms ease, transform 120ms ease;
+
+}
+
+.corrector-popup-visible {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .corrector-message {
@@ -100,4 +119,29 @@
 .corrector-suggestion:hover {
     background: #fdc800; /* groc senyera */
     color: #4a0d08;
+}
+
+.corrector-ignore {
+
+    display: block;
+    width: 100%;
+    text-align: left;
+
+    background: none;
+    border: none;
+    border-top: 1px solid #eee;
+    margin-top: 4px;
+    padding: 8px 10px 6px 10px;
+
+    font-size: 12px;
+    font-family: inherit;
+    color: #888;
+    cursor: pointer;
+    border-radius: 4px;
+
+}
+
+.corrector-ignore:hover {
+    background: #f5f5f5;
+    color: #555;
 }

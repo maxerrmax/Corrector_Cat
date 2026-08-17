@@ -37,7 +37,15 @@ function drawUnderline(overlay, textarea, error, x, y, width) {
 
     underline.addEventListener("click", () => {
         const rect = underline.getBoundingClientRect();
-        showSuggestionPopup(rect, error, (chosenText) => applyFixTextarea(textarea, error, chosenText));
+        showSuggestionPopup(
+            rect,
+            error,
+            (chosenText) => applyFixTextarea(textarea, error, chosenText),
+            () => {
+                ignoreError(error);
+                redraw(textarea, overlay);
+            }
+        );
     });
 
     overlay.appendChild(underline);
